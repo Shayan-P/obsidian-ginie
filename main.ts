@@ -1,4 +1,5 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownRenderChild, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { MarkdownRenderer } from 'obsidian';
 
 interface MyPluginSettings {
 	openai_api_key: string;
@@ -129,16 +130,23 @@ class AskLLMModal extends Modal {
 		textInput.style.height = '100px';
 		textInput.style.marginBottom = '2px';
 		
-		// Create output container and textarea
+		// Create output container and markdown renderer
 		const outputContainer = contentEl.createDiv('output-container');
-		const outputArea = outputContainer.createEl('textarea');
-		outputArea.placeholder = 'Response will appear here...';
-		outputArea.style.width = '100%';
-		outputArea.style.maxHeight = '300px';
-		outputArea.style.marginBottom = '10px';
-		outputArea.readOnly = true;
-		outputArea.style.visibility = 'hidden';
+		outputContainer.style.display = 'none';
+		outputContainer.style.maxHeight = '500px';
+		outputContainer.style.overflow = 'auto';
+		outputContainer.style.padding = '10px';
+		outputContainer.style.border = '1px solid var(--background-modifier-border)';
+		outputContainer.style.borderRadius = '4px';
+		outputContainer.style.marginTop = '10px';
 
+		// Add copy button container
+		const copyButtonContainer = contentEl.createDiv('copy-button-container');
+		copyButtonContainer.style.display = 'none';
+		copyButtonContainer.style.textAlign = 'right';
+		copyButtonContainer.style.marginTop = '5px';
+		const copyButton = copyButtonContainer.createEl('button', {text: 'Copy'});
+		
 		// Create submit button
 		const buttonContainer = inputContainer.createDiv('button-container');
 		buttonContainer.style.textAlign = 'center';
@@ -147,16 +155,34 @@ class AskLLMModal extends Modal {
 		const submitPrompt = async () => {
 			const prompt = textInput.value;
 			console.log('Submitted prompt:', prompt);
-			outputArea.style.visibility = 'visible';
-			outputArea.value = 'Processing your request...';
+			outputContainer.style.display = 'block';
+			outputContainer.innerHTML = '<em>Processing your request...</em>';
+			copyButtonContainer.style.display = 'none';
 			
 			try {
 				const response = await this.openai.query(current_file_content, prompt);
-				outputArea.value = response;
+				// Use Obsidian's markdown renderer
+				outputContainer.innerHTML = '';
+				const markdownRenderChild = new MarkdownRenderChild(outputContainer);
+				await MarkdownRenderer.render(
+					this.app,
+					response,
+					outputContainer,
+					'',
+					markdownRenderChild
+				);
+				
+				// Show copy button and add click handler
+				copyButtonContainer.style.display = 'block';
+				copyButton.onclick = async () => {
+					await navigator.clipboard.writeText(response);
+					new Notice('Copied to clipboard!');
+				};
 			} catch (error) {
 				console.error('Error:', error);
 				new Notice(`Error: ${error.message}`);
-				outputArea.style.visibility = 'hidden';  // Hide the output area on error
+				outputContainer.style.display = 'none';
+				copyButtonContainer.style.display = 'none';
 			}
 		};
 
