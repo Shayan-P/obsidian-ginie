@@ -2,6 +2,9 @@
 
 This is a plugin for Obsidian based on (https://github.com/obsidianmd/obsidian-sample-plugin).
 
+
+![demo](./static/demo.gif)
+
 ### Installation
 
 This is manual for now. 
@@ -16,4 +19,4 @@ npm run build
 
 - Go to Community Plugins and enable the plugin.
 
-- Add openai api key in the settings.
+- Add your openai api key in the plugin settings.
